@@ -26,20 +26,20 @@ class AIAnalyzer:
             Dictionary with sentiment score and label
         """
         try:
-            prompt = f"""Analyze the sentiment of the following text related to stock market/finance.
-Return a JSON object with:
-- sentiment_score: a number between -1 (very negative) and 1 (very positive)
-- sentiment_label: one of "positive", "negative", or "neutral"
-- key_points: list of key points that influenced the sentiment
+            prompt = f"""Analysera sentimentet i följande text relaterad till aktiemarknaden/finans.
+Svara med ett JSON-objekt som innehåller:
+- sentiment_score: ett tal mellan -1 (mycket negativt) och 1 (mycket positivt)
+- sentiment_label: en av "positive", "negative", eller "neutral"
+- key_points: lista över nyckelpunkter som påverkade sentimentet (på svenska)
 
 Text: {text[:1000]}
 
-Return only valid JSON, no other text."""
+Svara endast med giltig JSON, ingen annan text."""
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a financial sentiment analysis expert."},
+                    {"role": "system", "content": "Du är en expert på finansiell sentimentanalys."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3
@@ -83,7 +83,7 @@ Return only valid JSON, no other text."""
                 
                 # Calculate recent trend
                 recent_prices = [h['close'] for h in history[-30:]]
-                trend = "up" if recent_prices[-1] > recent_prices[0] else "down"
+                trend = "upp" if recent_prices[-1] > recent_prices[0] else "ner"
                 change_pct = ((recent_prices[-1] - recent_prices[0]) / recent_prices[0]) * 100
                 
                 data_summary.append({
@@ -94,32 +94,32 @@ Return only valid JSON, no other text."""
                     'recent_low': round(min(recent_prices), 2)
                 })
             
-            prompt = f"""Analyze the following stock market data and identify potential correlations or inverse relationships between instruments.
+            prompt = f"""Analysera följande marknadsdata och identifiera potentiella korrelationer eller inversa förhållanden mellan instrumenten.
 
 Data: {json.dumps(data_summary, indent=2)}
 
-Identify:
-1. Instruments that tend to move in opposite directions (inverse correlation)
-2. Instruments that tend to move together (positive correlation)
-3. Any interesting patterns or relationships
+Identifiera:
+1. Instrument som tenderar att röra sig i motsatta riktningar (invers korrelation)
+2. Instrument som tenderar att röra sig tillsammans (positiv korrelation)
+3. Intressanta mönster eller förhållanden
 
-Return a JSON array of correlations with this structure:
+Svara med en JSON-array av korrelationer med denna struktur:
 [
   {{
     "instrument1": "SYMBOL1",
     "instrument2": "SYMBOL2",
-    "relationship": "inverse" or "positive",
-    "strength": "strong", "moderate", or "weak",
-    "explanation": "Brief explanation of the relationship"
+    "relationship": "inverse" eller "positive",
+    "strength": "strong", "moderate", eller "weak",
+    "explanation": "Kort förklaring av förhållandet på svenska"
   }}
 ]
 
-Return only valid JSON, no other text."""
+Svara endast med giltig JSON, ingen annan text."""
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert in financial market analysis and pattern recognition."},
+                    {"role": "system", "content": "Du är expert på finansiell marknadsanalys och mönsterigenkänning."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.5
@@ -183,46 +183,46 @@ Return only valid JSON, no other text."""
             # Relevant correlations
             relevant_corr = [c for c in correlations if symbol in [c.get('instrument1'), c.get('instrument2')]]
             
-            prompt = f"""As an AI stock market analyst, predict the direction of {name} ({symbol}) for the next week.
+            prompt = f"""Som en AI-aktieanalytiker, förutspå riktningen för {name} ({symbol}) för den kommande veckan.
 
-Current Data:
-- Recent 30-day price change: {price_change:.2f}%
-- Current price: ${recent_prices[-1]:.2f}
+Aktuell Data:
+- Prisförändring senaste 30 dagarna: {price_change:.2f}%
+- Aktuellt pris: ${recent_prices[-1]:.2f}
 
-Recent News (last 7 days):
+Senaste nyheterna (senaste 7 dagarna):
 {json.dumps(news_summary, indent=2)}
 
-Social Media Sentiment:
+Sentiment i sociala medier:
 {json.dumps(social_summary, indent=2)}
 
-Market Context:
+Marknadskontext:
 {json.dumps(market_context, indent=2)}
 
-Known Correlations:
+Kända korrelationer:
 {json.dumps(relevant_corr, indent=2)}
 
-Based on pattern recognition and the above data, provide a prediction with this JSON structure:
+Baserat på mönsterigenkänning och ovanstående data, ge en prediktion med denna JSON-struktur:
 {{
-  "direction": "up" or "down",
-  "confidence": 0.0 to 1.0,
-  "strategy": "momentum", "contrarian", "correlation", or "news_impact",
-  "reasoning": "Detailed explanation of the prediction",
-  "key_factors": ["list", "of", "key", "factors"],
-  "risk_level": "low", "medium", or "high"
+  "direction": "up" eller "down",
+  "confidence": 0.0 till 1.0,
+  "strategy": "momentum", "contrarian", "correlation", eller "news_impact",
+  "reasoning": "Detaljerad förklaring av prediktionen på svenska",
+  "key_factors": ["lista", "över", "viktiga", "faktorer", "på", "svenska"],
+  "risk_level": "low", "medium", eller "high"
 }}
 
-Focus on:
-1. Pattern recognition from news and social sentiment
-2. Correlation effects from related instruments
-3. Market context and overall trends
-4. Contrarian opportunities (over-negative or over-positive sentiment)
+Fokusera på:
+1. Mönsterigenkänning från nyheter och socialt sentiment
+2. Korrelationseffekter från relaterade instrument
+3. Marknadskontext och övergripande trender
+4. Contrarian-möjligheter (över-negativt eller över-positivt sentiment)
 
-Return only valid JSON, no other text."""
+Svara endast med giltig JSON, ingen annan text."""
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert AI stock market analyst specializing in pattern recognition and sentiment analysis."},
+                    {"role": "system", "content": "Du är en expert AI-aktieanalytiker specialiserad på mönsterigenkänning och sentimentanalys."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.6
@@ -275,29 +275,29 @@ Return only valid JSON, no other text."""
                 correct = strategy_stats[strategy]['correct']
                 strategy_stats[strategy]['accuracy'] = (correct / total * 100) if total > 0 else 0
             
-            prompt = f"""Analyze the performance of different trading strategies:
+            prompt = f"""Analysera prestandan för olika handelsstrategier:
 
 {json.dumps(strategy_stats, indent=2)}
 
-Provide recommendations on:
-1. Which strategies are working best
-2. Which strategies should be adjusted or avoided
-3. Potential improvements for underperforming strategies
+Ge rekommendationer om:
+1. Vilka strategier som fungerar bäst
+2. Vilka strategier som bör justeras eller undvikas
+3. Potentiella förbättringar för strategier med låg prestanda
 
-Return a JSON object with:
+Svara med ett JSON-objekt som innehåller:
 {{
-  "best_strategy": "strategy name",
-  "worst_strategy": "strategy name",
-  "recommendations": ["list", "of", "recommendations"],
-  "market_condition_assessment": "current market conditions"
+  "best_strategy": "strateginamn",
+  "worst_strategy": "strateginamn",
+  "recommendations": ["lista", "över", "rekommendationer", "på", "svenska"],
+  "market_condition_assessment": "bedömning av aktuella marknadsförhållanden på svenska"
 }}
 
-Return only valid JSON, no other text."""
+Svara endast med giltig JSON, ingen annan text."""
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert in trading strategy optimization."},
+                    {"role": "system", "content": "Du är expert på optimering av handelsstrategier."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.5
@@ -327,23 +327,23 @@ Return only valid JSON, no other text."""
             Market insights text
         """
         try:
-            prompt = f"""Based on the following market data, provide key insights and trends:
+            prompt = f"""Baserat på följande marknadsdata, ge viktiga insikter och trender:
 
 {json.dumps(all_data, indent=2)[:3000]}
 
-Provide:
-1. Overall market sentiment
-2. Key trends identified
-3. Sectors showing strength/weakness
-4. Important news themes affecting the market
-5. Risk factors to watch
+Ge:
+1. Övergripande marknadssentiment
+2. Identifierade huvudtrender
+3. Sektorer som visar styrka/svaghet
+4. Viktiga nyhetsteman som påverkar marknaden
+5. Riskfaktorer att hålla koll på
 
-Write a concise analysis (3-4 paragraphs)."""
+Skriv en kortfattad analys på svenska (3-4 stycken)."""
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a financial market analyst providing daily market insights."},
+                    {"role": "system", "content": "Du är en finansiell marknadsanalytiker som ger dagliga marknadsinsikter på svenska."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7
@@ -353,4 +353,4 @@ Write a concise analysis (3-4 paragraphs)."""
             
         except Exception as e:
             print(f"Error generating market insights: {e}")
-            return "Unable to generate market insights at this time."
+            return "Kunde inte generera marknadsinsikter för tillfället."
