@@ -19,7 +19,7 @@ from utils.ai_analyzer import AIAnalyzer
 
 # Page configuration
 st.set_page_config(
-    page_title="Stock AI Predictor",
+    page_title="SignalEngine - AI Aktieanalys",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -37,12 +37,12 @@ def init_components():
 db, collector, analyzer = init_components()
 
 # Sidebar
-st.sidebar.title("📈 Stock AI Predictor")
+st.sidebar.title("📈 SignalEngine")
 st.sidebar.markdown("---")
 
 page = st.sidebar.radio(
     "Navigering",
-    ["Översikt", "Prediktioner", "Prestanda", "Marknadsinsikter", "Inställningar"]
+    ["Översikt", "Prediktioner", "Prestanda", "Marknadsinsikter", "Information & Instruktioner", "Inställningar"]
 )
 
 st.sidebar.markdown("---")
@@ -57,7 +57,7 @@ AI-driven aktieanalys med:
 
 # Main content
 if page == "Översikt":
-    st.title("📊 Stock Market AI Predictor")
+    st.title("📊 SignalEngine - AI Aktieanalys")
     st.markdown("### AI-driven mönsterigenkänning för aktiemarknaden")
     
     # Market overview
@@ -88,7 +88,10 @@ if page == "Översikt":
     week_end = today + timedelta(days=7)
     target_date = week_end.strftime('%Y-%m-%d')
     
-    predictions = db.get_predictions(target_date=target_date, limit=20)
+    try:
+        predictions = db.get_predictions(target_date=target_date, limit=20)
+    except:
+        predictions = []
     
     if predictions:
         pred_df = pd.DataFrame(predictions)
@@ -114,7 +117,14 @@ if page == "Översikt":
     # Overall accuracy
     st.subheader("🎯 Total Prestanda")
     
-    accuracy = db.get_overall_accuracy()
+    try:
+        accuracy = db.get_overall_accuracy()
+        instruments = db.get_instruments()
+        all_predictions = db.get_predictions(limit=1000)
+    except:
+        accuracy = 0
+        instruments = []
+        all_predictions = []
     
     col1, col2, col3 = st.columns(3)
     
@@ -122,11 +132,9 @@ if page == "Översikt":
         st.metric("Total Träffsäkerhet", f"{accuracy:.1f}%")
     
     with col2:
-        instruments = db.get_instruments()
         st.metric("Spårade Instrument", len(instruments))
     
     with col3:
-        all_predictions = db.get_predictions(limit=1000)
         st.metric("Totalt antal Prediktioner", len(all_predictions))
 
 elif page == "Prediktioner":
@@ -146,13 +154,16 @@ elif page == "Prediktioner":
             target_date = None
     
     # Get predictions
-    if view_mode == "Denna vecka":
-        week_end = datetime.now() + timedelta(days=7)
-        predictions = db.get_predictions(target_date=week_end.strftime('%Y-%m-%d'), limit=50)
-    elif view_mode == "Per datum":
-        predictions = db.get_predictions(target_date=target_date, limit=50)
-    else:
-        predictions = db.get_predictions(limit=100)
+    try:
+        if view_mode == "Denna vecka":
+            week_end = datetime.now() + timedelta(days=7)
+            predictions = db.get_predictions(target_date=week_end.strftime('%Y-%m-%d'), limit=50)
+        elif view_mode == "Per datum":
+            predictions = db.get_predictions(target_date=target_date, limit=50)
+        else:
+            predictions = db.get_predictions(limit=100)
+    except:
+        predictions = []
     
     if predictions:
         pred_df = pd.DataFrame(predictions)
@@ -208,7 +219,10 @@ elif page == "Prestanda":
     st.title("📊 Analys av Strategiernas Prestanda")
     
     # Get strategy performance data
-    performance_data = db.get_strategy_performance(weeks=12)
+    try:
+        performance_data = db.get_strategy_performance(weeks=12)
+    except:
+        performance_data = []
     
     if performance_data:
         perf_df = pd.DataFrame(performance_data)
@@ -274,11 +288,17 @@ elif page == "Prestanda":
     col1, col2 = st.columns(2)
     
     with col1:
-        accuracy = db.get_overall_accuracy()
+        try:
+            accuracy = db.get_overall_accuracy()
+        except:
+            accuracy = 0
         st.metric("Total Träffsäkerhet", f"{accuracy:.1f}%")
     
     with col2:
-        all_preds = db.get_predictions(limit=1000)
+        try:
+            all_preds = db.get_predictions(limit=1000)
+        except:
+            all_preds = []
         st.metric("Totalt utvärderade prediktioner", len(all_preds))
 
 elif page == "Marknadsinsikter":
@@ -315,94 +335,78 @@ elif page == "Marknadsinsikter":
     # Show tracked instruments
     st.subheader("Spårade Instrument")
     
-    instruments = db.get_instruments()
+    try:
+        instruments = db.get_instruments()
+    except:
+        instruments = []
     
     if instruments:
         inst_df = pd.DataFrame(instruments)
         display_inst = inst_df[['symbol', 'name', 'sector']].copy()
         display_inst.columns = ['Symbol', 'Namn', 'Sektor']
         st.dataframe(display_inst, use_container_width=True)
-    else:
-        st.info("Inga instrument spåras för tillfället.")
 
-elif page == "Inställningar":
-    st.title("⚙️ Inställningar & Konfiguration")
+elif page == "Information & Instruktioner":
+    st.title("ℹ️ Information & Instruktioner")
     
-    st.subheader("Spårade Instrument")
-    
-    # Show current instruments
-    instruments = db.get_instruments()
-    
-    if instruments:
-        st.markdown("**Spåras just nu:**")
-        for inst in instruments:
-            st.text(f"• {inst['symbol']} - {inst['name']} ({inst['sector']})")
-    
-    st.markdown("---")
-    
-    # Add new instrument
-    st.subheader("Lägg till nytt instrument")
-    
-    with st.form("add_instrument"):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            symbol = st.text_input("Aktiesymbol (t.ex. AAPL)", "").upper()
-        
-        with col2:
-            sector = st.text_input("Sektor (valfritt)", "")
-        
-        submitted = st.form_submit_button("Lägg till instrument")
-        
-        if submitted and symbol:
-            with st.spinner(f"Hämtar data för {symbol}..."):
-                stock_data = collector.get_stock_data(symbol)
-                
-                if stock_data:
-                    name = stock_data['name']
-                    detected_sector = stock_data.get('sector', sector)
-                    
-                    inst_id = db.add_instrument(symbol, name, detected_sector)
-                    
-                    # Add price history
-                    for record in stock_data['history']:
-                        db.add_price_data(
-                            inst_id,
-                            record['Date'].strftime('%Y-%m-%d'),
-                            record['Open'],
-                            record['High'],
-                            record['Low'],
-                            record['Close'],
-                            record['Volume']
-                        )
-                    
-                    st.success(f"Lade till {symbol} - {name} framgångsrikt!")
-                    st.rerun()
-                else:
-                    st.error(f"Kunde inte hämta data för {symbol}. Kontrollera symbolen.")
-    
-    st.markdown("---")
-    
-    # API Configuration
-    st.subheader("API-konfiguration")
-    
+    st.header("Datakällor & Kvalitetsbedömning")
     st.markdown("""
-    Konfigurera API-nycklar i dina miljövariabler:
-    - `OPENAI_API_KEY` - Krävs för AI-analys
-    - `FINNHUB_API_KEY` - Valfritt, för nyheter och sentiment
-    - `NEWS_API_KEY` - Valfritt, för ytterligare nyhetskällor
-    - `REDDIT_CLIENT_ID` - Valfritt, för Reddit-sentiment
-    - `REDDIT_CLIENT_SECRET` - Valfritt, för Reddit-sentiment
+    SignalEngine använder flera olika datakällor för att skapa en helhetsbild av marknaden. 
+    Kvalitetsnivån baseras på data-integritet, relevans och historisk träffsäkerhet.
     """)
     
-    # Check which APIs are configured
-    st.markdown("**API-status:**")
-    st.text(f"✓ OpenAI: Konfigurerad" if os.getenv('OPENAI_API_KEY') else "✗ OpenAI: Ej konfigurerad")
-    st.text(f"✓ Finnhub: Konfigurerad" if os.getenv('FINNHUB_API_KEY') else "✗ Finnhub: Ej konfigurerad (valfritt)")
-    st.text(f"✓ News API: Konfigurerad" if os.getenv('NEWS_API_KEY') else "✗ News API: Ej konfigurerad (valfritt)")
-    st.text(f"✓ Reddit: Konfigurerad" if os.getenv('REDDIT_CLIENT_ID') else "✗ Reddit: Ej konfigurerad (valfritt)")
+    data_sources = [
+        {"Källa": "Yahoo Finance", "Typ": "Aktiepriser & Volym", "Kvalitet": "Hög", "Motivering": "Officiell marknadsdata med minimal fördröjning. Utgör grunden för verifiering."},
+        {"Källa": "Finnhub API", "Typ": "Företagsnyheter", "Kvalitet": "Hög", "Motivering": "Professionella nyhetsflöden från verifierade källor. Direkt kopplat till instrument."},
+        {"Källa": "OpenAI (GPT-4o)", "Typ": "Mönsteranalys", "Kvalitet": "Medel", "Motivering": "Hög intelligens men risk för feltolkningar. Fungerar som systemets hjärna."},
+        {"Källa": "Reddit", "Typ": "Socialt Sentiment", "Kvalitet": "Medel", "Motivering": "Bra bild av retail-investerare men innehåller mycket brus och manipulation."},
+        {"Källa": "News API", "Typ": "Allmänna finansnyheter", "Kvalitet": "Medel", "Motivering": "Bred täckning men varierad kvalitet. Bra för makrotrender."},
+        {"Källa": "Sociala Medier (X m.fl.)", "Typ": "Hype & Rykten", "Kvalitet": "Låg", "Motivering": "Extremt mycket brus och bottar. Används främst för att fånga upp extrem hype."}
+    ]
+    st.table(data_sources)
+    
+    st.header("Användarmanual")
+    
+    with st.expander("1. Starta och Konfigurera", expanded=True):
+        st.markdown("""
+        - **API-nyckel**: Se till att din `OPENAI_API_KEY` är inlagd i Renders inställningar (Environment Variables).
+        - **Databas**: Programmet skapar automatiskt sin egen databas vid första start.
+        """)
+        
+    with st.expander("2. Daglig användning"):
+        st.markdown("""
+        - **Översikt**: Se hur de stora indexen rör sig och läs dagens AI-insikter.
+        - **Lägg till instrument**: Under 'Inställningar' kan du lägga till nya aktier att bevaka.
+        """)
+        
+    with st.expander("3. Veckovisa Prediktioner"):
+        st.markdown("""
+        - Varje vecka körs en djupanalys av de senaste 12 månaderna för att hitta mönster.
+        - Under fliken **'Prediktioner'** ser du vad AI:n tror om nästa vecka.
+        """)
+        
+    with st.expander("4. Utvärdering och Lärande"):
+        st.markdown("""
+        - Programmet sparar alla tips och utvärderar dem i efterhand.
+        - Under fliken **'Prestanda'** ser du vilka strategier som fungerar bäst just nu.
+        """)
 
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.markdown("© 2026 Stock AI Predictor")
-st.sidebar.markdown("Drivs av AI-mönsterigenkänning")
+elif page == "Inställningar":
+    st.title("⚙️ Inställningar")
+    
+    st.subheader("Lägg till nytt instrument")
+    with st.form("add_instrument_form"):
+        symbol = st.text_input("Symbol (t.ex. AAPL, TSLA, VOLV-B.ST)")
+        name = st.text_input("Namn (t.ex. Apple Inc.)")
+        sector = st.text_input("Sektor (t.ex. Technology)")
+        
+        submit = st.form_submit_button("Lägg till")
+        
+        if submit and symbol and name:
+            db.add_instrument(symbol, name, sector)
+            st.success(f"Lade till {symbol} i bevakningslistan!")
+    
+    st.markdown("---")
+    st.subheader("Systemstatus")
+    st.info(f"Databas-sökväg: {db.db_path}")
+    st.info(f"OpenAI API Status: {'Konfigurerad' if os.getenv('OPENAI_API_KEY') else 'Saknas'}")
