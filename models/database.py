@@ -2,6 +2,7 @@
 Database models and schema for the stock AI predictor.
 """
 import sqlite3
+import os
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 import json
@@ -12,6 +13,10 @@ class Database:
     
     def __init__(self, db_path: str = "data/stock_predictor.db"):
         self.db_path = db_path
+        # Ensure the directory exists
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
         self.init_database()
     
     def get_connection(self):
