@@ -1,0 +1,77 @@
+services:
+  # Web Service for Streamlit Dashboard
+  - type: web
+    name: stock-ai-predictor
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # Cron Job for Daily Updates
+  - type: cron
+    name: stock-ai-daily-update
+    env: python
+    region: frankfurt
+    plan: free
+    schedule: "0 9 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_daily_update.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+
+  # Cron Job for Weekly Predictions
+  - type: cron
+    name: stock-ai-weekly-prediction
+    env: python
+    region: frankfurt
+    plan: free
+    schedule: "0 10 * * 0"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_weekly_prediction.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+
+  # Cron Job for Evaluation
+  - type: cron
+    name: stock-ai-evaluation
+    env: python
+    region: frankfurt
+    plan: free
+    schedule: "0 11 * * 1"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_evaluation.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
